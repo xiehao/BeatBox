@@ -1,29 +1,28 @@
 package com.example.beatbox;
 
-import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
-/**
- * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link BeatBoxFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link BeatBoxFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.databinding.DataBindingUtil;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.beatbox.databinding.FragmentBeatBoxBinding;
+import com.example.beatbox.databinding.ListItemSoundBinding;
+
+import java.util.BitSet;
+import java.util.List;
+import java.util.Objects;
+
 public class BeatBoxFragment extends Fragment {
 
-    public BeatBoxFragment() {
-        // Required empty public constructor
-    }
+    private static final int SPAN_COUNT = 3;
+    private BeatBox mBeatBox;
 
     /**
      * Use this factory method to create a new instance of
@@ -32,7 +31,7 @@ public class BeatBoxFragment extends Fragment {
      * @return A new instance of fragment BeatBoxFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static BeatBoxFragment newInstance() {
+    static BeatBoxFragment newInstance() {
         BeatBoxFragment fragment = new BeatBoxFragment();
         Bundle args = new Bundle();
         fragment.setArguments(args);
@@ -40,44 +39,64 @@ public class BeatBoxFragment extends Fragment {
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        mBeatBox = new BeatBox(Objects.requireNonNull(getActivity()));
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_beat_box, container, false);
-        return view;
+        FragmentBeatBoxBinding binding = DataBindingUtil.inflate(
+                inflater, R.layout.fragment_beat_box, container, false);
+        binding.recyclerView.setLayoutManager(new GridLayoutManager(getActivity(), SPAN_COUNT));
+        binding.recyclerView.setAdapter(new SoundAdapter(mBeatBox.getSounds()));
+        return binding.getRoot();
     }
 
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-        } else {
-            throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
+    private class SoundHolder extends RecyclerView.ViewHolder {
+
+        private final ListItemSoundBinding mBinding;
+
+        SoundHolder(ListItemSoundBinding binding) {
+            super(binding.getRoot());
+            mBinding = binding;
+            mBinding.setViewModel(new SoundViewModel(mBeatBox));
+        }
+
+        void bind(Sound sound) {
+            mBinding.getViewModel().setSound(sound);
+            mBinding.executePendingBindings();
         }
     }
 
-    @Override
-    public void onDetach() {
-        super.onDetach();
-    }
+    private class SoundAdapter extends RecyclerView.Adapter<SoundHolder> {
 
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
+        private List<Sound> mSounds;
+
+        SoundAdapter(List<Sound> sounds) {
+            mSounds = sounds;
+        }
+
+        @NonNull
+        @Override
+        public SoundHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            LayoutInflater inflater = LayoutInflater.from(getActivity());
+            ListItemSoundBinding binding = DataBindingUtil.inflate(
+                    inflater, R.layout.list_item_sound, parent, false);
+            return new SoundHolder(binding);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull SoundHolder holder, int position) {
+            Sound sound = mSounds.get(position);
+            holder.bind(sound);
+        }
+
+        @Override
+        public int getItemCount() {
+            return mSounds.size();
+        }
     }
 }
